@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecommendAI | CODSOFT Task 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0c0f; --panel:#17191f; --panel-2:#1e2129; --line:#2c313c;
+    --amber:#e8a33d; --amber-2:#c9761f; --blue:#6fa8dc; --gold:#f2c14e;
+    --text:#eef0f4; --text-dim:#8b93a3;
+    --mono:'JetBrains Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; overflow-x:hidden; }
+  .screen{ min-height:100vh; display:none; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; }
+  .screen.active{ display:flex; }
+
+  #splash{ background:radial-gradient(circle at 50% 40%, #201a10 0%, #0b0c0f 65%); cursor:pointer; }
+  .logo{
+    font-family:var(--mono); font-weight:800; font-size:48px; letter-spacing:-0.02em;
+    color:var(--amber); opacity:0; transform:scale(.85);
+    animation: logoIn 1.1s cubic-bezier(.2,.9,.25,1) forwards;
+    text-shadow: 0 0 60px rgba(232,163,61,.35);
+    text-align:center;
+  }
+  .logo span{ color:var(--text); }
+  @keyframes logoIn{ to{ opacity:1; transform:scale(1); } }
+  .tagline{ font-family:var(--mono); font-size:12px; letter-spacing:.3em; text-transform:uppercase; color:var(--text-dim); margin-top:14px; opacity:0; animation: fadeIn .8s ease 1s forwards; }
+  .tap-hint{ margin-top:60px; font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:.1em; opacity:0; animation: fadeIn .8s ease 1.8s forwards; }
+  @keyframes fadeIn{ to{ opacity:1; } }
+
+  .step-label{ font-family:var(--mono); font-size:11px; color:var(--amber); letter-spacing:.2em; text-transform:uppercase; margin-bottom:10px; }
+  .step-title{ font-family:var(--mono); font-size:28px; font-weight:700; margin:0 0 8px; text-align:center; }
+  .step-sub{ color:var(--text-dim); font-size:14px; margin-bottom:36px; text-align:center; max-width:460px; }
+  .option-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; max-width:760px; width:100%; }
+  .option{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px 14px; text-align:center; cursor:pointer; font-weight:600; font-size:14.5px; transition:all .15s; }
+  .option:hover{ border-color:var(--amber); transform:translateY(-2px); }
+  .option.selected{ border-color:var(--amber); background:linear-gradient(160deg, var(--amber-2)33, var(--panel)); box-shadow:0 0 0 1px var(--amber); }
+  .option .emoji{ font-size:22px; display:block; margin-bottom:8px; }
+  .step-actions{ margin-top:32px; display:flex; gap:12px; }
+  button.nav{ background:transparent; color:var(--text-dim); border:1px solid var(--line); padding:12px 22px; border-radius:9px; font-family:var(--mono); font-size:12.5px; cursor:pointer; }
+  button.nav.primary{ background:var(--amber); color:#1a1305; border:none; font-weight:700; }
+  button.nav:disabled{ opacity:.35; cursor:not-allowed; }
+  button.nav:hover:not(:disabled){ filter:brightness(1.1); }
+
+  #browse{ align-items:stretch; padding:32px 24px 60px; }
+  .browse-wrap{ max-width:1140px; margin:0 auto; width:100%; }
+  .browse-top{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px; flex-wrap:wrap; gap:14px; }
+  .browse-title{ font-family:var(--mono); font-size:22px; font-weight:700; }
+  .browse-filters{ font-family:var(--mono); font-size:11.5px; color:var(--text-dim); }
+  .browse-filters b{ color:var(--amber); }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:16px; margin-bottom:34px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; cursor:pointer; transition:transform .15s, border-color .15s; }
+  .card:hover{ transform:translateY(-4px); border-color:var(--amber); }
+  .card.selected{ border-color:var(--amber); box-shadow:0 0 0 1px var(--amber); }
+  .poster{ height:150px; display:flex; align-items:center; justify-content:center; position:relative; font-family:var(--mono); font-weight:800; font-size:30px; color:rgba(255,255,255,.92); text-shadow:0 2px 10px rgba(0,0,0,.35); text-align:center; padding:10px; overflow:hidden; }
+  .poster::before{ content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px); pointer-events:none; }
+  .poster .icon{ position:absolute; bottom:8px; right:10px; font-size:22px; opacity:.55; text-shadow:none; }
+  .poster .init{ position:relative; z-index:1; }
+  .poster .yr{ position:absolute; top:8px; left:10px; font-size:10px; font-weight:700; background:rgba(0,0,0,.35); padding:3px 7px; border-radius:5px; }
+  .poster .rating{ position:absolute; top:8px; right:10px; font-size:10.5px; font-weight:700; background:rgba(0,0,0,.45); padding:3px 7px; border-radius:5px; display:flex; align-items:center; gap:3px; }
+  .poster .rating::before{ content:'★'; color:var(--gold); }
+  .body{ padding:14px; }
+  .card .title{ font-weight:700; font-size:14px; margin-bottom:5px; }
+  .card .genres{ font-family:var(--mono); font-size:10px; color:var(--blue); margin-bottom:4px; }
+  .card .lang{ font-family:var(--mono); font-size:10px; color:var(--text-dim); }
+  .card .desc{ font-size:11.5px; color:var(--text-dim); margin-top:8px; line-height:1.5; }
+  .empty{ text-align:center; color:var(--text-dim); font-family:var(--mono); font-size:13px; padding:60px 20px; }
+
+  .results{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:26px; display:none; }
+  .results.show{ display:block; }
+  .results h2{ font-family:var(--mono); font-size:15px; margin:0 0 16px; color:var(--amber); }
+  .rec{ display:flex; align-items:center; gap:14px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .rec:last-child{ border-bottom:none; }
+  .mini-poster{ width:42px; height:42px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:800; font-size:14px; color:rgba(255,255,255,.9); }
+  .rec .info{ flex:1; }
+  .rec .name{ font-weight:600; font-size:13.5px; }
+  .rec .g{ font-family:var(--mono); font-size:10.5px; color:var(--text-dim); margin-top:3px; }
+  .bar{ width:100px; height:6px; background:var(--panel-2); border-radius:4px; overflow:hidden; }
+  .bar .fill{ height:100%; background:var(--amber); }
+  .score{ font-family:var(--mono); font-size:11px; color:var(--amber); width:38px; text-align:right; }
+  .rec-right{ display:flex; align-items:center; gap:10px; }
+  .disclaimer{ font-size:11px; color:var(--text-dim); font-family:var(--mono); margin-top:24px; padding:10px 14px; background:var(--panel); border:1px solid var(--line); border-radius:8px; line-height:1.6; }
+
+  .tabs{ display:flex; gap:8px; margin-bottom:4px; }
+  .tab{ font-family:var(--mono); font-size:12px; padding:8px 16px; border-radius:20px; border:1px solid var(--line); cursor:pointer; color:var(--text-dim); }
+  .tab.active{ background:var(--amber); color:#1a1305; border-color:var(--amber); font-weight:700; }
+</style>
+</head>
+<body>
+
+<div class="screen active" id="splash">
+  <div class="logo">RECOMMEND<span>AI</span></div>
+  <div class="tagline">Codsoft AI Internship · Task 04</div>
+  <div class="tap-hint">Click anywhere to continue</div>
+</div>
+
+<div class="screen" id="categoryScreen">
+  <div class="step-label">Step 1 of 3</div>
+  <div class="step-title">What are you in the mood to explore?</div>
+  <div class="step-sub">Pick a category — each uses the same content-based recommendation engine underneath.</div>
+  <div class="option-grid" id="categoryGrid" style="max-width:420px;">
+    <div class="option" data-cat="movies"><span class="emoji">🎬</span>Movies</div>
+    <div class="option" data-cat="books"><span class="emoji">📚</span>Books</div>
+  </div>
+</div>
+
+<div class="screen" id="dim1Screen">
+  <div class="step-label">Step 2 of 3</div>
+  <div class="step-title" id="dim1Title">Pick a language</div>
+  <div class="step-sub" id="dim1Sub">We'll narrow the catalogue down to your preference.</div>
+  <div class="option-grid" id="dim1Grid"></div>
+  <div class="step-actions">
+    <button class="nav" id="dim1Back">← Back</button>
+    <button class="nav primary" id="dim1Next" disabled>Continue →</button>
+  </div>
+</div>
+
+<div class="screen" id="dim2Screen">
+  <div class="step-label">Step 3 of 3</div>
+  <div class="step-title" id="dim2Title">Pick your genres</div>
+  <div class="step-sub" id="dim2Sub">Select one or more.</div>
+  <div class="option-grid" id="dim2Grid"></div>
+  <div class="step-actions">
+    <button class="nav" id="dim2Back">← Back</button>
+    <button class="nav primary" id="dim2Next" disabled>Show recommendations →</button>
+  </div>
+</div>
+
+<div class="screen" id="browse">
+  <div class="browse-wrap">
+    <div class="browse-top">
+      <div>
+        <div class="tabs">
+          <div class="tab" id="tabMovies">🎬 Movies</div>
+          <div class="tab" id="tabBooks">📚 Books</div>
+        </div>
+        <div class="browse-title" id="browseTitle" style="margin-top:10px">Recommended for you</div>
+        <div class="browse-filters" id="browseFilters"></div>
+        <div class="browse-filters" id="relaxedNote" style="display:none; color:var(--amber); margin-top:4px;"></div>
+      </div>
+      <button class="nav" id="restartTop">Start over</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="emptyState" style="display:none">Nothing matches that combination yet — try different filters.</div>
+
+    <div class="results" id="results">
+      <h2 id="resultsTitle"></h2>
+      <div id="recList"></div>
+    </div>
+
+    <div class="disclaimer" id="disclaimerText"></div>
+  </div>
+</div>
+
+<script>
+// =========================== DATA ===========================
+const MOVIES = [
+  { title:"The Matrix", year:1999, genres:["Action","Sci-Fi"], lang:"English", imdb:8.7, desc:"A hacker discovers reality is a simulation and joins a rebellion against machines." },
+  { title:"The Dark Knight", year:2008, genres:["Action","Crime","Drama"], lang:"English", imdb:9.0, desc:"Batman faces the Joker, a criminal mastermind who wants to plunge Gotham into anarchy." },
+  { title:"Parasite", year:2019, genres:["Drama","Thriller"], lang:"Korean", imdb:8.5, desc:"A poor family schemes to become employed by a wealthy household, with dark consequences." },
+  // ---- 2020 ----
+  { title:"Soul", year:2020, genres:["Animation","Family","Fantasy"], lang:"English", imdb:8.1, desc:"A jazz pianist's soul is separated from his body and must find his way back before his big break." },
+  { title:"Tenet", year:2020, genres:["Action","Sci-Fi","Thriller"], lang:"English", imdb:7.3, desc:"A secret agent manipulates the flow of time to prevent a catastrophic attack on the world." },
+  { title:"The Father", year:2020, genres:["Drama"], lang:"English", imdb:8.2, desc:"An elderly man's grip on reality unravels as he struggles to trust the family around him." },
+  // ---- 2021 ----
+  { title:"Dune", year:2021, genres:["Adventure","Drama","Sci-Fi"], lang:"English", imdb:8.0, desc:"A young heir must navigate a treacherous desert planet to secure his family's future." },
+  { title:"Spider-Man: No Way Home", year:2021, genres:["Action","Adventure","Sci-Fi"], lang:"English", imdb:8.2, desc:"Peter Parker seeks a spell to restore his secret identity, unleashing dangers from other universes." },
+  { title:"CODA", year:2021, genres:["Drama","Music"], lang:"English", imdb:8.0, desc:"The only hearing member of a deaf family must decide between her passion and her family's needs." },
+  // ---- 2022 ----
+  { title:"Everything Everywhere All at Once", year:2022, genres:["Action","Comedy","Sci-Fi"], lang:"English", imdb:7.8, desc:"An overwhelmed laundromat owner discovers she must connect with parallel-universe versions of herself." },
+  { title:"Top Gun: Maverick", year:2022, genres:["Action","Drama"], lang:"English", imdb:8.2, desc:"A veteran pilot trains a new generation of graduates for a dangerous mission." },
+  { title:"RRR", year:2022, genres:["Action","Drama"], lang:"Telugu", imdb:7.8, desc:"Two revolutionaries form a bond while fighting British colonial rule in 1920s India." },
+  { title:"The Batman", year:2022, genres:["Action","Crime","Drama"], lang:"English", imdb:7.8, desc:"Batman uncovers corruption in Gotham while pursuing a sadistic serial killer." },
+  { title:"Decision to Leave", year:2022, genres:["Mystery","Romance","Thriller"], lang:"Korean", imdb:7.3, desc:"A detective investigating a man's death grows increasingly obsessed with the victim's widow." },
+  // ---- 2023 ----
+  { title:"Oppenheimer", year:2023, genres:["Biography","Drama","History"], lang:"English", imdb:8.3, desc:"The story of J. Robert Oppenheimer and his role in developing the atomic bomb." },
+  { title:"Barbie", year:2023, genres:["Comedy","Fantasy"], lang:"English", imdb:6.8, desc:"Barbie and Ken venture from Barbieland into the real world, questioning identity and purpose." },
+  { title:"Poor Things", year:2023, genres:["Comedy","Drama","Sci-Fi"], lang:"English", imdb:7.9, desc:"A young woman is brought back to life by a scientist and sets out to explore the world." },
+  { title:"Jawan", year:2023, genres:["Action","Thriller"], lang:"Hindi", imdb:7.0, desc:"A man wages a personal war against a corrupt system, hiding a mysterious past." },
+  { title:"12th Fail", year:2023, genres:["Biography","Drama"], lang:"Hindi", imdb:8.9, desc:"A determined young man overcomes poverty and repeated failure to crack India's toughest exam." },
+  { title:"Godzilla Minus One", year:2023, genres:["Action","Horror","Sci-Fi"], lang:"Japanese", imdb:7.7, desc:"In post-war Japan, a new Godzilla attack threatens a country already devastated by war." },
+  { title:"Sita Ramam", year:2022, genres:["Drama","Romance"], lang:"Telugu", imdb:8.5, desc:"A soldier's letter to a woman named Sita unravels a moving story of love across borders and time." },
+  { title:"Suzume", year:2022, genres:["Animation","Fantasy","Romance"], lang:"Japanese", imdb:7.6, desc:"A teenage girl closes mystical doors causing disasters across Japan, aided by a chair-cursed young man." },
+  { title:"Rocky Aur Rani Kii Prem Kahaani", year:2023, genres:["Comedy","Drama","Romance"], lang:"Hindi", imdb:6.8, desc:"Two families with opposing values clash and connect as a young couple falls in love." },
+  { title:"Broker", year:2022, genres:["Comedy","Drama"], lang:"Korean", imdb:7.3, desc:"A group of black-market baby brokers form an unlikely bond with a mother searching for her child's adoptive family." },
+  // ---- 2024 ----
+  { title:"Dune: Part Two", year:2024, genres:["Action","Adventure","Sci-Fi"], lang:"English", imdb:8.5, desc:"Paul Atreides unites with the Fremen to seek revenge against those who destroyed his family." },
+  { title:"The Wild Robot", year:2024, genres:["Animation","Adventure","Family"], lang:"English", imdb:8.2, desc:"A robot shipwrecked on an island must learn to survive and connect with the animals around her." },
+  { title:"Kalki 2898 AD", year:2024, genres:["Action","Sci-Fi"], lang:"Telugu", imdb:6.4, desc:"In a dystopian future, an ancient prophecy resurfaces around the birth of a savior." },
+  { title:"Stree 2", year:2024, genres:["Comedy","Horror"], lang:"Hindi", imdb:7.0, desc:"A small town is haunted by a new supernatural threat, forcing old heroes back into action." },
+  // ---- 2025 / 2026 ----
+  { title:"One Battle After Another", year:2025, genres:["Action","Drama","Thriller"], lang:"English", imdb:7.7, desc:"Ex-revolutionaries reunite years later to rescue the daughter of one of their own." },
+  { title:"The Running Man", year:2025, genres:["Action","Sci-Fi","Thriller"], lang:"English", imdb:6.4, desc:"A contestant on a deadly game show is chased across the world by hired hunters." },
+  { title:"28 Years Later: The Bone Temple", year:2026, genres:["Horror","Sci-Fi"], lang:"English", imdb:7.4, desc:"Survivors of a viral outbreak uncover a new threat while trying to protect the next generation." },
+];
+
+const BOOKS = [
+  { title:"Atomic Habits", author:"James Clear", year:2018, genres:["Self-Help"], mood:["Uplifting","Motivating"], rating:4.4, desc:"A practical guide to building good habits and breaking bad ones through small, consistent changes." },
+  { title:"The Alchemist", author:"Paulo Coelho", year:1988, genres:["Fiction","Fantasy"], mood:["Uplifting","Reflective"], rating:3.9, desc:"A shepherd travels to Egypt in search of treasure, discovering the meaning of his personal legend." },
+  { title:"Harry Potter and the Sorcerer's Stone", author:"J.K. Rowling", year:1997, genres:["Fantasy"], mood:["Adventurous","Uplifting"], rating:4.5, desc:"An orphaned boy discovers he's a wizard and enrolls in a magical school with a dark destiny ahead." },
+  { title:"The Silent Patient", author:"Alex Michaelides", year:2019, genres:["Mystery","Thriller"], mood:["Dark","Intense"], rating:4.2, desc:"A woman stops speaking after allegedly murdering her husband, and her therapist becomes obsessed with why." },
+  { title:"It Ends with Us", author:"Colleen Hoover", year:2016, genres:["Romance"], mood:["Emotional"], rating:4.3, desc:"A young woman's new relationship forces her to confront patterns from her painful past." },
+  { title:"Sapiens", author:"Yuval Noah Harari", year:2011, genres:["Non-Fiction","History"], mood:["Thought-provoking"], rating:4.4, desc:"A sweeping account of how Homo sapiens came to dominate the world." },
+  { title:"1984", author:"George Orwell", year:1949, genres:["Dystopian","Sci-Fi"], mood:["Dark","Intense"], rating:4.2, desc:"A man rebels against a totalitarian regime that controls truth itself in a surveillance state." },
+  { title:"The Midnight Library", author:"Matt Haig", year:2020, genres:["Fiction","Fantasy"], mood:["Reflective","Uplifting"], rating:4.2, desc:"A woman finds a library between life and death where each book lets her live a different version of her life." },
+  { title:"Gone Girl", author:"Gillian Flynn", year:2012, genres:["Thriller","Mystery"], mood:["Dark","Intense"], rating:4.1, desc:"A woman disappears on her wedding anniversary, and her husband becomes the prime suspect." },
+  { title:"Where the Crawdads Sing", author:"Delia Owens", year:2018, genres:["Fiction","Mystery"], mood:["Emotional","Reflective"], rating:4.5, desc:"An abandoned girl raises herself in the marshes of North Carolina, only to become a murder suspect." },
+  { title:"Project Hail Mary", author:"Andy Weir", year:2021, genres:["Sci-Fi"], mood:["Adventurous","Uplifting"], rating:4.5, desc:"A lone astronaut wakes up with no memory, tasked with saving humanity from extinction." },
+  { title:"Fourth Wing", author:"Rebecca Yarros", year:2023, genres:["Fantasy","Romance"], mood:["Thrilling","Adventurous"], rating:4.6, desc:"A young woman enters a brutal dragon-riders academy where most cadets don't survive their first year." },
+  { title:"Educated", author:"Tara Westover", year:2018, genres:["Biography","Non-Fiction"], mood:["Thought-provoking","Emotional"], rating:4.5, desc:"A woman raised in a strict survivalist family fights to educate herself and leave her past behind." },
+  { title:"The Book Thief", author:"Markus Zusak", year:2005, genres:["Historical Fiction"], mood:["Emotional","Dark"], rating:4.4, desc:"A young girl steals books and shares them with others during Nazi Germany, narrated by Death itself." },
+  { title:"The Hobbit", author:"J.R.R. Tolkien", year:1937, genres:["Fantasy"], mood:["Adventurous","Cozy"], rating:4.3, desc:"A reluctant hobbit joins a quest to reclaim a mountain kingdom from a fearsome dragon." },
+  { title:"Ikigai", author:"Héctor García", year:2016, genres:["Self-Help","Non-Fiction"], mood:["Calm","Reflective"], rating:4.0, desc:"An exploration of the Japanese concept of finding purpose for a long, happy life." },
+];
+
+const LANGUAGES = ["Any language", ...new Set(MOVIES.map(m => m.lang))];
+const MOVIE_GENRES = [...new Set(MOVIES.flatMap(m => m.genres))].sort();
+const MOODS = ["Any mood", ...new Set(BOOKS.flatMap(b => b.mood))];
+const BOOK_GENRES = [...new Set(BOOKS.flatMap(b => b.genres))].sort();
+
+let category = null;      // 'movies' | 'books'
+let selectedLang = null;
+let selectedMood = null;
+let selectedGenres = new Set();
+let filteredItems = [];
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ---------- SPLASH -> CATEGORY ----------
+document.getElementById('splash').addEventListener('click', () => showScreen('categoryScreen'), { once: true });
+
+document.querySelectorAll('#categoryGrid .option').forEach(el => {
+  el.onclick = () => {
+    category = el.dataset.cat;
+    buildDim1();
+    showScreen('dim1Screen');
+  };
+});
+
+// ---------- DIM 1: language (movies) or mood (books) ----------
+function buildDim1(){
+  const grid = document.getElementById('dim1Grid');
+  grid.innerHTML = '';
+  document.getElementById('dim1Next').disabled = true;
+  selectedLang = null; selectedMood = null;
+
+  if (category === 'movies'){
+    document.getElementById('dim1Title').textContent = 'Pick a language';
+    document.getElementById('dim1Sub').textContent = "We'll narrow the catalogue down to films in your preferred language.";
+    LANGUAGES.forEach(lang => {
+      const el = document.createElement('div');
+      el.className = 'option'; el.textContent = lang;
+      el.onclick = () => {
+        selectedLang = lang;
+        document.querySelectorAll('#dim1Grid .option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('dim1Next').disabled = false;
+      };
+      grid.appendChild(el);
+    });
+  } else {
+    document.getElementById('dim1Title').textContent = 'What mood are you in?';
+    document.getElementById('dim1Sub').textContent = "We'll find books that match how you're feeling right now.";
+    MOODS.forEach(mood => {
+      const el = document.createElement('div');
+      el.className = 'option'; el.textContent = mood;
+      el.onclick = () => {
+        selectedMood = mood;
+        document.querySelectorAll('#dim1Grid .option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('dim1Next').disabled = false;
+      };
+      grid.appendChild(el);
+    });
+  }
+}
+document.getElementById('dim1Back').onclick = () => showScreen('categoryScreen');
+document.getElementById('dim1Next').onclick = () => { buildDim2(); showScreen('dim2Screen'); };
+
+// ---------- DIM 2: genre ----------
+function buildDim2(){
+  const grid = document.getElementById('dim2Grid');
+  grid.innerHTML = '';
+  selectedGenres = new Set();
+  document.getElementById('dim2Next').disabled = true;
+  document.getElementById('dim2Title').textContent = 'Pick your genres';
+  document.getElementById('dim2Sub').textContent = 'Select one or more — the more you pick, the broader your recommendations.';
+
+  const genreList = category === 'movies' ? MOVIE_GENRES : BOOK_GENRES;
+  genreList.forEach(g => {
+    const el = document.createElement('div');
+    el.className = 'option'; el.textContent = g;
+    el.onclick = () => {
+      if (selectedGenres.has(g)){ selectedGenres.delete(g); el.classList.remove('selected'); }
+      else { selectedGenres.add(g); el.classList.add('selected'); }
+      document.getElementById('dim2Next').disabled = selectedGenres.size === 0;
+    };
+    grid.appendChild(el);
+  });
+}
+document.getElementById('dim2Back').onclick = () => showScreen('dim1Screen');
+document.getElementById('dim2Next').onclick = () => { applyFilters(); showScreen('browse'); };
+document.getElementById('restartTop').onclick = restart;
+document.getElementById('tabMovies').onclick = () => switchCategory('movies');
+document.getElementById('tabBooks').onclick = () => switchCategory('books');
+
+function switchCategory(cat){
+  category = cat;
+  selectedGenres = new Set();
+  if (cat === 'movies') selectedLang = 'Any language'; else selectedMood = 'Any mood';
+  applyFilters();
+}
+
+function restart(){
+  category = null; selectedLang = null; selectedMood = null; selectedGenres = new Set();
+  document.getElementById('results').classList.remove('show');
+  showScreen('categoryScreen');
+}
+
+// ---------- FILTER + RENDER (with graceful fallback so filters never dead-end) ----------
+function applyFilters(){
+  updateTabs();
+  let relaxedNote = '';
+
+  if (category === 'movies'){
+    const langOk = m => !selectedLang || selectedLang === 'Any language' || m.lang === selectedLang;
+    const genreOk = m => selectedGenres.size === 0 || m.genres.some(g => selectedGenres.has(g));
+
+    filteredItems = MOVIES.filter(m => langOk(m) && genreOk(m));
+    if (!filteredItems.length && selectedGenres.size){
+      // relax language first, keep genre (genre is usually the stronger signal)
+      filteredItems = MOVIES.filter(genreOk);
+      if (filteredItems.length) relaxedNote = `No ${[...selectedGenres].join('/')} titles in ${selectedLang} yet — showing that genre across all languages instead.`;
+    }
+    if (!filteredItems.length && selectedLang && selectedLang !== 'Any language'){
+      filteredItems = MOVIES.filter(langOk);
+      if (filteredItems.length) relaxedNote = `No exact genre match in ${selectedLang} — showing all ${selectedLang} titles instead.`;
+    }
+    filteredItems.sort((a,b) => b.imdb - a.imdb);
+    document.getElementById('browseTitle').textContent = 'Recommended movies';
+    document.getElementById('browseFilters').innerHTML = `Filtered by <b>${selectedLang || 'Any language'}</b> · <b>${[...selectedGenres].join(', ') || 'All genres'}</b>`;
+    document.getElementById('disclaimerText').textContent = "Posters are generated gradient cards, not real movie artwork — actual posters are copyrighted. IMDb ratings for 2025/2026 titles were checked at time of writing; earlier titles use well-established consensus scores.";
+  } else {
+    const moodOk = b => !selectedMood || selectedMood === 'Any mood' || b.mood.includes(selectedMood);
+    const genreOk = b => selectedGenres.size === 0 || b.genres.some(g => selectedGenres.has(g));
+
+    filteredItems = BOOKS.filter(b => moodOk(b) && genreOk(b));
+    if (!filteredItems.length && selectedGenres.size){
+      filteredItems = BOOKS.filter(genreOk);
+      if (filteredItems.length) relaxedNote = `No ${[...selectedGenres].join('/')} books match "${selectedMood}" yet — showing that genre across all moods instead.`;
+    }
+    if (!filteredItems.length && selectedMood && selectedMood !== 'Any mood'){
+      filteredItems = BOOKS.filter(moodOk);
+      if (filteredItems.length) relaxedNote = `No exact genre match for "${selectedMood}" — showing all books in that mood instead.`;
+    }
+    filteredItems.sort((a,b) => b.rating - a.rating);
+    document.getElementById('browseTitle').textContent = 'Recommended books';
+    document.getElementById('browseFilters').innerHTML = `Filtered by <b>${selectedMood || 'Any mood'}</b> · <b>${[...selectedGenres].join(', ') || 'All genres'}</b>`;
+    document.getElementById('disclaimerText').textContent = "Covers are generated gradient cards, not real book artwork — actual covers are copyrighted. Ratings shown are approximate Goodreads-style averages, not live data.";
+  }
+
+  renderGrid();
+  document.getElementById('results').classList.remove('show');
+
+  const relaxedEl = document.getElementById('relaxedNote');
+  if (relaxedNote){ relaxedEl.textContent = relaxedNote; relaxedEl.style.display = 'block'; }
+  else { relaxedEl.style.display = 'none'; }
+}
+
+function updateTabs(){
+  document.getElementById('tabMovies').classList.toggle('active', category === 'movies');
+  document.getElementById('tabBooks').classList.toggle('active', category === 'books');
+}
+
+const PALETTES = [
+  ['#2b5876','#4e4376'], ['#8e2de2','#4a00e0'], ['#0f2027','#2c5364'],
+  ['#ff512f','#dd2476'], ['#134e5e','#71b280'], ['#654ea3','#eaafc8'],
+  ['#1e3c72','#2a5298'], ['#a8324a','#3e1e3c'], ['#0f0c29','#302b63'],
+  ['#5c258d','#4389a2'], ['#000428','#004e92'], ['#403b4a','#8b8558'],
+  ['#3a1c71','#d76d77'], ['#0b486b','#f56217'], ['#2c3e50','#4ca1af'],
+  ['#232526','#414345'], ['#141e30','#243b55'], ['#360033','#0b8793'],
+];
+function paletteFor(title){
+  let hash = 0;
+  for (let i=0;i<title.length;i++) hash = (hash * 31 + title.charCodeAt(i)) >>> 0;
+  return PALETTES[hash % PALETTES.length];
+}
+function initials(title){
+  return title.split(' ').filter(w => w.length).slice(0,2).map(w => w[0]).join('').toUpperCase();
+}
+const GENRE_ICONS = {
+  Action:'💥', 'Sci-Fi':'🛸', Drama:'🎭', Romance:'💗', Comedy:'😂', Horror:'👻',
+  Thriller:'🔪', Mystery:'🕵️', Adventure:'🧭', Fantasy:'🐉', Animation:'🎨',
+  Family:'🏠', Biography:'📜', History:'🏛️', Crime:'🚔', Music:'🎵',
+  'Self-Help':'🌱', 'Non-Fiction':'📘', Dystopian:'🏙️', 'Historical Fiction':'📖', Fiction:'✒️'
+};
+function iconFor(genres){
+  for (const g of genres) if (GENRE_ICONS[g]) return GENRE_ICONS[g];
+  return '🎞️';
+}
+
+function renderGrid(){
+  const gridEl = document.getElementById('grid');
+  const emptyEl = document.getElementById('emptyState');
+  gridEl.innerHTML = '';
+
+  if (!filteredItems.length){ emptyEl.style.display = 'block'; return; }
+  emptyEl.style.display = 'none';
+
+  filteredItems.forEach((item) => {
+    const [c1, c2] = paletteFor(item.title);
+    const card = document.createElement('div');
+    card.className = 'card';
+    if (category === 'movies'){
+      card.innerHTML = `
+        <div class="poster" style="background:linear-gradient(135deg, ${c1}, ${c2})">
+          <span class="yr">${item.year}</span><span class="rating">${item.imdb}</span>
+          <span class="init">${initials(item.title)}</span><span class="icon">${iconFor(item.genres)}</span>
+        </div>
+        <div class="body">
+          <div class="title">${item.title}</div>
+          <div class="genres">${item.genres.join(' ')}</div>
+          <div class="lang">${item.lang}</div>
+          <div class="desc">${item.desc}</div>
+        </div>`;
+    } else {
+      card.innerHTML = `
+        <div class="poster" style="background:linear-gradient(135deg, ${c1}, ${c2})">
+          <span class="yr">${item.year}</span><span class="rating">${item.rating}</span>
+          <span class="init">${initials(item.title)}</span><span class="icon">${iconFor(item.genres)}</span>
+        </div>
+        <div class="body">
+          <div class="title">${item.title}</div>
+          <div class="genres">${item.genres.join(' ')}</div>
+          <div class="lang">by ${item.author}</div>
+          <div class="desc">${item.desc}</div>
+        </div>`;
+    }
+    card.onclick = () => selectItem(item, card);
+    gridEl.appendChild(card);
+  });
+}
+
+// ---------- RECOMMENDATION ENGINE (shared, TF-IDF + cosine) ----------
+const STOPWORDS = new Set(["a","an","the","who","and","or","of","to","in","on","for","with","is","are","that","this","by"]);
+function tokenize(str){ return str.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(w => w && !STOPWORDS.has(w)); }
+
+function buildEngine(items, extraTextFn){
+  const docs = items.map(it => tokenize(it.genres.join(' ') + ' ' + it.desc + ' ' + (extraTextFn ? extraTextFn(it) : '')));
+  const vocab = [...new Set(docs.flat())];
+  const idf = {};
+  vocab.forEach(term => { const df = docs.filter(d => d.includes(term)).length; idf[term] = Math.log(items.length / df) + 1; });
+  function vectorize(tokens){ const counts={}; tokens.forEach(t=>counts[t]=(counts[t]||0)+1); return vocab.map(term => (counts[term]||0)*idf[term]); }
+  return docs.map(vectorize);
+}
+const movieVectors = buildEngine(MOVIES);
+const bookVectors = buildEngine(BOOKS, b => b.mood.join(' '));
+
+function cosine(a,b){ let dot=0,magA=0,magB=0; for(let i=0;i<a.length;i++){dot+=a[i]*b[i]; magA+=a[i]*a[i]; magB+=b[i]*b[i];} if(!magA||!magB) return 0; return dot/(Math.sqrt(magA)*Math.sqrt(magB)); }
+
+function selectItem(item, cardEl){
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+  cardEl.classList.add('selected');
+
+  const sourceItems = category === 'movies' ? MOVIES : BOOKS;
+  const vectors = category === 'movies' ? movieVectors : bookVectors;
+  const idx = sourceItems.indexOf(item);
+
+  const sims = vectors.map((v,i) => ({ i, score: i===idx ? -1 : cosine(vectors[idx], v) }))
+                       .sort((a,b) => b.score - a.score).slice(0, 5);
+
+  document.getElementById('resultsTitle').textContent = `Because you liked "${item.title}"`;
+  const listEl = document.getElementById('recList');
+  listEl.innerHTML = '';
+  sims.forEach(s => {
+    const it = sourceItems[s.i];
+    const [c1, c2] = paletteFor(it.title);
+    const pct = Math.round(Math.max(s.score,0) * 100);
+    const meta = category === 'movies'
+      ? `${it.genres.join(' ')} · ${it.lang} · ★ ${it.imdb}`
+      : `${it.genres.join(' ')} · by ${it.author} · ★ ${it.rating}`;
+    const row = document.createElement('div');
+    row.className = 'rec';
+    row.innerHTML = `
+      <div class="mini-poster" style="background:linear-gradient(135deg, ${c1}, ${c2})">${initials(it.title)}</div>
+      <div class="info">
+        <div class="name">${it.title} <span style="color:var(--text-dim); font-weight:400;">(${it.year})</span></div>
+        <div class="g">${meta}</div>
+      </div>
+      <div class="rec-right">
+        <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
+        <div class="score">${pct}%</div>
+      </div>`;
+    listEl.appendChild(row);
+  });
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+</script>
+</body>
+</html>

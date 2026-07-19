@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Detection & Recognition | CODSOFT Task 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+  :root{
+    --bg:#101216; --panel:#1a1d24; --panel-2:#20242c; --line:#2c313c;
+    --amber:#e8a33d; --amber-soft:#e8a33d22; --blue:#6fa8dc; --green:#4caf6d; --red:#e5534b;
+    --text:#e7e9ee; --text-dim:#8b93a3;
+    --mono:'JetBrains Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:radial-gradient(circle at 20% 0%, #1c2028 0%, #101216 55%); color:var(--text); font-family:var(--sans); padding:40px 24px; }
+  .wrap{ max-width:960px; margin:0 auto; }
+  .eyebrow{ font-family:var(--mono); font-size:12px; color:var(--amber); letter-spacing:.12em;
+    text-transform:uppercase; display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .eyebrow::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:0 0 8px var(--amber); }
+  h1{ font-family:var(--mono); font-size:30px; margin:0 0 4px; }
+  .sub{ color:var(--text-dim); font-size:14px; margin-bottom:24px; max-width:660px; line-height:1.6; }
+  .layout{ display:grid; grid-template-columns:1.3fr .9fr; gap:24px; align-items:start; }
+  @media (max-width:760px){ .layout{ grid-template-columns:1fr; } }
+  .stage{
+    position:relative; background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    overflow:hidden; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 24px 70px -30px rgba(0,0,0,.7);
+  }
+  .stage.live{ border-color:var(--amber-soft); box-shadow:0 0 0 1px var(--amber-soft), 0 24px 70px -30px rgba(0,0,0,.7); }
+  video, canvas{ position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; }
+  .placeholder{ color:var(--text-dim); font-family:var(--mono); font-size:13px; text-align:center; padding:30px; line-height:1.7; }
+  .badge{
+    position:absolute; top:12px; left:12px; z-index:5; font-family:var(--mono); font-size:11px;
+    background:rgba(16,18,22,.75); backdrop-filter:blur(4px); border:1px solid var(--line);
+    padding:6px 10px; border-radius:20px; display:none; align-items:center; gap:6px;
+  }
+  .badge.show{ display:flex; }
+  .badge .pulse{ width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 1.4s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .facecount{
+    position:absolute; top:12px; right:12px; z-index:5; font-family:var(--mono); font-size:11px;
+    background:rgba(16,18,22,.75); backdrop-filter:blur(4px); border:1px solid var(--line);
+    padding:6px 10px; border-radius:20px; color:var(--amber); display:none;
+  }
+  .facecount.show{ display:block; }
+  .controls{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  button{
+    background:transparent; color:var(--text); border:1px solid var(--line); padding:11px 18px;
+    border-radius:9px; font-family:var(--mono); font-size:12.5px; cursor:pointer; transition:all .15s;
+  }
+  button.primary{ background:var(--amber); color:#1a1305; border:none; font-weight:700; }
+  button:hover:not(:disabled){ filter:brightness(1.12); transform:translateY(-1px); }
+  button:disabled{ opacity:.35; cursor:not-allowed; }
+  .side{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px; }
+  .side h3{ font-family:var(--mono); font-size:12.5px; color:var(--amber); margin:0 0 10px; text-transform:uppercase; letter-spacing:.08em; }
+  .side p{ font-size:13.5px; color:var(--text-dim); line-height:1.7; margin:0 0 16px; }
+  .side code{ background:var(--panel-2); padding:2px 6px; border-radius:5px; font-family:var(--mono); font-size:12px; color:var(--blue); }
+  .status{ font-family:var(--mono); font-size:12px; color:var(--text-dim); margin-top:12px; display:flex; align-items:center; gap:7px; }
+  .status .dot{ width:7px; height:7px; border-radius:50%; background:var(--text-dim); }
+  .status.live .dot{ background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 1.4s infinite; }
+  .status.error .dot{ background:var(--red); }
+  .status.live{ color:var(--green); }
+  .status.error{ color:var(--red); }
+  .name-tag{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:9px 12px;
+    font-family:var(--mono); font-size:12px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;
+  }
+  input[type=text]{
+    width:100%; background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    padding:10px 12px; border-radius:8px; font-family:var(--sans); font-size:13.5px; margin-bottom:10px; outline:none;
+  }
+  input[type=text]:focus{ border-color:var(--amber); }
+  hr{ border:none; border-top:1px solid var(--line); margin:18px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Codsoft · Task 05 · Artificial Intelligence</div>
+  <h1>Face Detection & Recognition</h1>
+  <div class="sub">Real-time face detection via your webcam, plus optional recognition: register a face with a name, and the app labels it whenever it sees that person again. Runs entirely in your browser using face-api.js.</div>
+
+  <div class="layout">
+    <div>
+      <div class="stage" id="stage">
+        <div class="badge" id="liveBadge"><span class="pulse"></span>LIVE</div>
+        <div class="facecount" id="faceCount">0 faces</div>
+        <div class="placeholder" id="placeholder">Click "Start camera" to begin.<br><br>Your webcam needs to be served over <code>http://localhost</code> or <code>https</code> — see the side panel if it won't start.</div>
+        <video id="video" autoplay muted playsinline style="display:none"></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <div class="controls">
+        <button class="primary" id="startBtn">Start camera</button>
+        <button id="registerBtn" disabled>Register this face</button>
+        <button id="stopBtn" disabled>Stop</button>
+      </div>
+      <div class="status" id="status"><span class="dot"></span><span id="statusText">Camera off.</span></div>
+    </div>
+
+    <div class="side">
+      <h3>Registered faces</h3>
+      <input type="text" id="nameInput" placeholder="e.g. Swaranjith">
+      <p style="margin-top:0">Type a name, look at the camera, then click "Register this face". Registered faces are saved in this browser and reload automatically next time you open this page.</p>
+      <div id="registeredList"><p style="color:var(--text-dim); font-size:12.5px;">No faces registered yet.</p></div>
+      <button id="clearBtn" style="margin-top:10px; width:100%;">Clear all registered faces</button>
+      <hr>
+      <h3>Running locally?</h3>
+      <p>Browsers block camera access on plain <code>file://</code> pages. From the folder, run:<br><code>python -m http.server</code><br>then open <code>http://localhost:8000</code>.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const registerBtn = document.getElementById('registerBtn');
+const video = document.getElementById('video');
+const overlay = document.getElementById('overlay');
+const placeholder = document.getElementById('placeholder');
+const stageEl = document.getElementById('stage');
+const statusEl = document.getElementById('status');
+const statusText = document.getElementById('statusText');
+const registeredListEl = document.getElementById('registeredList');
+const liveBadge = document.getElementById('liveBadge');
+const faceCountEl = document.getElementById('faceCount');
+
+let stream = null;
+let detectInterval = null;
+let labeledDescriptors = [];
+let modelsReady = false;
+
+const STORAGE_KEY = 'codsoft_registered_faces';
+
+function loadRawFaces(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveRawFaces(raw){ localStorage.setItem(STORAGE_KEY, JSON.stringify(raw)); }
+let rawFaces = loadRawFaces();
+
+function renderRegisteredList(){
+  if (!rawFaces.length){
+    registeredListEl.innerHTML = '<p style="color:var(--text-dim); font-size:12.5px;">No faces registered yet.</p>';
+    return;
+  }
+  registeredListEl.innerHTML = '';
+  rawFaces.forEach(f => {
+    const tag = document.createElement('div');
+    tag.className = 'name-tag';
+    tag.innerHTML = `<span>${f.label}</span><span style="color:var(--amber)">✓ saved</span>`;
+    registeredListEl.appendChild(tag);
+  });
+}
+renderRegisteredList();
+
+function hydrateLabeledDescriptors(){
+  // Convert saved plain-number arrays back into faceapi's Float32Array-based
+  // LabeledFaceDescriptors — only possible once faceapi itself has loaded.
+  labeledDescriptors = rawFaces.map(f =>
+    new faceapi.LabeledFaceDescriptors(f.label, f.descriptors.map(d => new Float32Array(d)))
+  );
+}
+
+// The npm package on jsDelivr does NOT bundle model weights, so we pull them
+// straight from the face-api.js GitHub repo via jsDelivr's GitHub CDN.
+const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+
+function setStatus(text, mode){
+  statusText.textContent = text;
+  statusEl.className = 'status' + (mode ? ' ' + mode : '');
+}
+
+async function loadModels(){
+  setStatus('Loading detection models…');
+  await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+  await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+  await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+  modelsReady = true;
+  hydrateLabeledDescriptors();
+  setStatus('Models loaded.');
+}
+
+startBtn.onclick = async () => {
+  startBtn.disabled = true;
+  try {
+    if (!modelsReady) await loadModels();
+    stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+    video.srcObject = stream;
+    video.style.display = 'block';
+    placeholder.style.display = 'none';
+    await video.play();
+
+    overlay.width = video.clientWidth;
+    overlay.height = video.clientHeight;
+
+    stopBtn.disabled = false;
+    registerBtn.disabled = false;
+    stageEl.classList.add('live');
+    liveBadge.classList.add('show');
+    faceCountEl.classList.add('show');
+    setStatus('Camera live — detecting…', 'live');
+
+    detectInterval = setInterval(runDetection, 300);
+  } catch (err) {
+    setStatus('Camera error: ' + err.message + ' — see side panel', 'error');
+    startBtn.disabled = false;
+  }
+};
+
+stopBtn.onclick = () => {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  clearInterval(detectInterval);
+  video.style.display = 'none';
+  placeholder.style.display = 'flex';
+  overlay.getContext('2d').clearRect(0,0,overlay.width,overlay.height);
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  registerBtn.disabled = true;
+  stageEl.classList.remove('live');
+  liveBadge.classList.remove('show');
+  faceCountEl.classList.remove('show');
+  setStatus('Camera off.');
+};
+
+async function runDetection(){
+  const detections = await faceapi
+    .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptors();
+
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0,0,overlay.width,overlay.height);
+  faceCountEl.textContent = detections.length + (detections.length === 1 ? ' face' : ' faces');
+
+  const resized = faceapi.resizeResults(detections, { width: overlay.width, height: overlay.height });
+
+  resized.forEach(det => {
+    const box = det.detection.box;
+    let label = 'Unknown';
+    if (labeledDescriptors.length){
+      const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+      const match = matcher.findBestMatch(det.descriptor);
+      label = match.label === 'unknown' ? 'Unknown' : match.label;
+    }
+    const color = label === 'Unknown' ? '#e5534b' : '#e8a33d';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(box.x, box.y, box.width, box.height);
+    ctx.fillStyle = color;
+    ctx.font = '600 14px JetBrains Mono, monospace';
+    const textWidth = ctx.measureText(label).width;
+    ctx.fillRect(box.x - 1, box.y - 22, textWidth + 10, 20);
+    ctx.fillStyle = '#101216';
+    ctx.fillText(label, box.x + 4, box.y - 7);
+  });
+}
+
+registerBtn.onclick = async () => {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name){ alert('Type a name first.'); return; }
+
+  const detection = await faceapi
+    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+
+  if (!detection){ alert('No face detected — center your face in frame and try again.'); return; }
+
+  labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(name, [detection.descriptor]));
+  rawFaces.push({ label: name, descriptors: [Array.from(detection.descriptor)] });
+  saveRawFaces(rawFaces);
+  renderRegisteredList();
+  document.getElementById('nameInput').value = '';
+};
+
+document.getElementById('clearBtn').onclick = () => {
+  if (!rawFaces.length) return;
+  if (!confirm('Remove all registered faces from this browser?')) return;
+  rawFaces = [];
+  labeledDescriptors = [];
+  saveRawFaces(rawFaces);
+  renderRegisteredList();
+};
+</script>
+</body>
+</html>

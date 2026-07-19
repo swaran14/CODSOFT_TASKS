@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodBot — Rule-Based Chatbot | CODSOFT Task 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14161a;
+    --panel:#1c1f26;
+    --panel-2:#22262f;
+    --line:#2c313c;
+    --amber:#e8a33d;
+    --amber-dim:#b8823049;
+    --text:#e7e9ee;
+    --text-dim:#8b93a3;
+    --user-bubble:#2a3644;
+    --bot-bubble:#22262f;
+    --mono:'JetBrains Mono', monospace;
+    --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .wrap{ width:100%; max-width:760px; }
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; color:var(--amber); letter-spacing:.12em;
+    text-transform:uppercase; display:flex; align-items:center; gap:8px; margin-bottom:10px;
+  }
+  .eyebrow::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:0 0 8px var(--amber); }
+  h1{ font-family:var(--mono); font-size:28px; margin:0 0 4px; letter-spacing:-0.01em; }
+  .sub{ color:var(--text-dim); font-size:14px; margin-bottom:22px; }
+  .console{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden;
+    box-shadow:0 20px 60px -20px rgba(0,0,0,.6);
+  }
+  .titlebar{
+    display:flex; align-items:center; gap:8px; padding:12px 16px; background:var(--panel-2);
+    border-bottom:1px solid var(--line); font-family:var(--mono); font-size:12px; color:var(--text-dim);
+  }
+  .dot{ width:10px; height:10px; border-radius:50%; }
+  .dot.r{background:#e5534b;} .dot.y{background:#e2b93b;} .dot.g{background:#4caf6d;}
+  .chat{ height:440px; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:12px; }
+  .msg{ max-width:78%; padding:10px 14px; border-radius:12px; font-size:14.5px; line-height:1.5; animation:pop .18s ease; }
+  @keyframes pop{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  .bot{ align-self:flex-start; background:var(--bot-bubble); border:1px solid var(--line); border-bottom-left-radius:3px; }
+  .user{ align-self:flex-end; background:var(--user-bubble); border-bottom-right-radius:3px; }
+  .who{ font-family:var(--mono); font-size:10px; color:var(--amber); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+  .user .who{ color:#7fa8d9; text-align:right; }
+  .inputbar{ display:flex; gap:10px; padding:14px; border-top:1px solid var(--line); background:var(--panel-2); }
+  input{
+    flex:1; background:var(--bg); border:1px solid var(--line); color:var(--text);
+    padding:12px 14px; border-radius:9px; font-family:var(--sans); font-size:14.5px; outline:none;
+  }
+  input:focus{ border-color:var(--amber); }
+  button{
+    background:var(--amber); color:#1a1305; border:none; padding:0 20px; border-radius:9px;
+    font-family:var(--mono); font-weight:700; font-size:13px; cursor:pointer; letter-spacing:.02em;
+  }
+  button:hover{ filter:brightness(1.08); }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; padding:0 14px 14px; }
+  .chip{
+    font-family:var(--mono); font-size:11.5px; color:var(--text-dim); border:1px solid var(--line);
+    padding:6px 10px; border-radius:20px; cursor:pointer; background:var(--panel);
+  }
+  .chip:hover{ color:var(--amber); border-color:var(--amber-dim); }
+  .note{ margin-top:16px; font-size:12.5px; color:var(--text-dim); line-height:1.6; padding:14px 16px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; }
+  .note b{ color:var(--amber); }
+  ::-webkit-scrollbar{ width:8px; } ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Codsoft · Task 01 · Artificial Intelligence</div>
+  <h1>CodBot</h1>
+  <div class="sub">A rule-based chatbot using pattern matching + a curated knowledge base. No LLM, no API calls — every reply below traces back to a regex rule you can read in the source.</div>
+
+  <div class="console">
+    <div class="titlebar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>&nbsp;&nbsp;codbot — rule_engine.js</div>
+    <div class="chat" id="chat"></div>
+    <div class="chips" id="chips"></div>
+    <div class="inputbar">
+      <input id="input" type="text" placeholder="Type a message…" autocomplete="off">
+      <button onclick="send()">Send</button>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>How it works:</b> user input is lower-cased and tested against an ordered list of regex patterns (greetings, name memory, jokes, time/date, small talk). If nothing matches, it falls back to a random "I don't understand" response and a lightweight knowledge-lookup table for common facts. This mirrors <code>chatbot.py</code> in the repo — same logic, ported to JavaScript for the browser.
+    <br><br><b>Note on "current affairs":</b> facts like who's currently a president or CEO are hard-coded as of when this was built (mid-2026) — a rule-based bot has no internet connection, so it can't fetch live news. If asked far in the future, some of these answers may be outdated.
+  </div>
+</div>
+
+<script>
+const chatEl = document.getElementById('chat');
+const chipsEl = document.getElementById('chips');
+let userName = null;
+
+// small curated knowledge base — a lookup table is still "rule-based",
+// it just lets the bot answer a few real-world facts without being a general AI
+const KNOWLEDGE = {
+  // ---- Sports / GK ----
+  "virat kohli": "Virat Kohli is a former captain of the Indian national cricket team, widely regarded as one of the greatest batsmen of his generation.",
+  "sachin tendulkar": "Sachin Tendulkar is a former Indian cricketer, often called the 'God of Cricket', and the all-time leading run-scorer in international cricket.",
+  "ms dhoni": "MS Dhoni is a former Indian cricket captain, known for leading India to the 2007 T20 World Cup and 2011 ODI World Cup titles.",
+  "cristiano ronaldo": "Cristiano Ronaldo is a Portuguese footballer widely considered one of the greatest players of all time.",
+  "lionel messi": "Lionel Messi is an Argentine footballer, an 8-time Ballon d'Or winner, and a 2022 FIFA World Cup champion.",
+  "capital of india": "New Delhi is the capital of India.",
+  "capital of usa": "Washington, D.C. is the capital of the United States.",
+  "capital of france": "Paris is the capital of France.",
+  "largest country": "Russia is the largest country in the world by land area.",
+  "smallest country": "Vatican City is the smallest country in the world by area.",
+  "tallest mountain": "Mount Everest is the tallest mountain above sea level, at 8,849 meters.",
+  "longest river": "The Nile is generally considered the longest river in the world, though the Amazon is a close competitor by some measurements.",
+  "national animal of india": "The Bengal Tiger is the national animal of India.",
+  "national bird of india": "The Indian Peacock is the national bird of India.",
+
+  // ---- Technology / CS ----
+  "what is ai": "Artificial Intelligence (AI) is the field of building systems that can perform tasks normally requiring human intelligence, like understanding language or recognizing images.",
+  "what is machine learning": "Machine Learning is a subset of AI where systems learn patterns from data instead of being explicitly programmed with rules.",
+  "what is deep learning": "Deep Learning is a subset of Machine Learning that uses multi-layered neural networks to learn complex patterns, especially from large amounts of data.",
+  "what is nlp": "NLP (Natural Language Processing) is the branch of AI focused on enabling computers to understand, interpret, and generate human language.",
+  "what is python": "Python is a high-level, general-purpose programming language known for its readability, widely used in AI, web development, and data science.",
+  "what is html": "HTML (HyperText Markup Language) is the standard markup language used to structure content on web pages.",
+  "what is css": "CSS (Cascading Style Sheets) is used to style and lay out HTML content — colors, fonts, spacing, and layout.",
+  "what is javascript": "JavaScript is a programming language that makes web pages interactive, running directly in the browser.",
+  "what is api": "An API (Application Programming Interface) is a set of rules that lets different software systems communicate with each other.",
+  "what is github": "GitHub is a platform for hosting and collaborating on code using Git, a version control system.",
+  "what is git": "Git is a version control system that tracks changes to code over time and enables collaboration between developers.",
+  "what is cloud computing": "Cloud computing is the delivery of computing services — servers, storage, databases — over the internet instead of local hardware.",
+  "who made you": "I was built by Akula Swaranjith Goud for the CodSoft AI internship.",
+  "who is elon musk": "Elon Musk is a businessman known for leading companies like Tesla, SpaceX, and X (formerly Twitter).",
+  "who is anthropic": "Anthropic is an AI safety company that created Claude, an AI assistant.",
+  "who invented python": "Python was created by Guido van Rossum and first released in 1991.",
+  "who is sundar pichai": "Sundar Pichai is the CEO of Google and Alphabet Inc.",
+  "who is satya nadella": "Satya Nadella is the CEO of Microsoft.",
+
+  // ---- Current affairs (fixed facts as of mid-2026 — a static rule-based bot
+  // can't fetch live news, so these are snapshot facts, not real-time) ----
+  "prime minister of india": "As of 2026, Narendra Modi is the Prime Minister of India, serving his third consecutive term since June 2024.",
+  "president of india": "As of 2026, Droupadi Murmu is the President of India.",
+  "president of usa": "As of 2026, Donald Trump is the President of the United States, having been sworn in for his second term on January 20, 2025.",
+  "president of the united states": "As of 2026, Donald Trump is the President of the United States, having been sworn in for his second term on January 20, 2025.",
+  "ceo of anthropic": "Dario Amodei is the CEO and co-founder of Anthropic.",
+  "ceo of tesla": "Elon Musk is the CEO of Tesla.",
+  "ceo of openai": "Sam Altman is the CEO of OpenAI.",
+};
+
+const rules = [
+  { p: /\b(hi|hello|hey|hola|yo)\b/, fn: () => {
+      const g = ["Hello!", "Hi there!", "Hey! Great to see you."];
+      return userName ? `${pick(g)} Welcome back, ${userName}!` : pick(g);
+  }},
+  { p: /\bmy name is (\w+)/, fn: (m) => {
+      userName = m[1][0].toUpperCase() + m[1].slice(1);
+      return `Nice to meet you, ${userName}!`;
+  }},
+  { p: /what('?s| is) your name/, fn: () => "I'm CodBot, a rule-based assistant — no neural network involved!" },
+  { p: /what('?s| is) my name/, fn: () => userName ? `Your name is ${userName}, of course!` : "You haven't told me your name yet. Try 'My name is ...'." },
+  { p: /how are you/, fn: () => pick(["Running smoothly on pure logic today. How about you?", "I'm just regex and if-else, but I'm doing great!"]) },
+  { p: /\b(bye|goodbye|see you|exit|quit)\b/, fn: () => `Goodbye${userName ? ', ' + userName : ''}! Have a great day.` },
+  { p: /thank(s| you)/, fn: () => pick(["You're welcome!", "Anytime!", "Glad I could help!"]) },
+  { p: /\b(time|clock)\b/, fn: () => `The current time is ${new Date().toLocaleTimeString()}.` },
+  { p: /\b(date|today)\b/, fn: () => `Today's date is ${new Date().toLocaleDateString()}.` },
+  { p: /joke/, fn: () => pickNoRepeat(JOKES) },
+  { p: /who (made|created|built) you/, fn: () => "I was built by Akula Swaranjith Goud as part of the CodSoft AI internship!" },
+  { p: /(help|what can you do)/, fn: () => "I can chat, tell the time/date, crack a joke, remember your name, and answer a handful of general-knowledge facts I've been given." },
+];
+
+const JOKES = [
+  "Why do programmers prefer dark mode? Because light attracts bugs!",
+  "Why did the AI go to therapy? Too many deep learning issues.",
+  "Why do Java developers wear glasses? Because they don't C#.",
+  "How many programmers does it take to change a light bulb? None — that's a hardware problem.",
+  "I told my computer I needed a break, and now it won't stop sending me KitKats.",
+  "Why was the JavaScript developer sad? Because they didn't Node how to Express themselves.",
+  "There are 10 types of people in the world: those who understand binary, and those who don't.",
+  "A neural network walks into a bar. The bartender asks, 'What'll it be?' It replies, 'I don't know, I need more training data.'",
+  "Why did the chatbot break up with the calculator? It found someone with more depth.",
+  "Debugging: being the detective in a crime movie where you are also the murderer.",
+  "Why do programmers hate nature? Too many bugs and no debugger.",
+  "I'd tell you a UDP joke, but you might not get it.",
+];
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+let lastJokeIdx = -1;
+function pickNoRepeat(arr){
+  let idx;
+  do { idx = Math.floor(Math.random()*arr.length); } while (arr.length > 1 && idx === lastJokeIdx);
+  lastJokeIdx = idx;
+  return arr[idx];
+}
+
+
+
+function getResponse(raw){
+  const text = raw.trim().toLowerCase();
+  for (const rule of rules){
+    const m = text.match(rule.p);
+    if (m) return rule.fn(m);
+  }
+  for (const key in KNOWLEDGE){
+    if (text.includes(key)) return KNOWLEDGE[key];
+  }
+  return pick([
+    "I'm not sure I understand — I only know my programmed rules. Could you rephrase?",
+    "That's outside my rule set. Try asking something else!",
+    "I didn't catch that. Try a greeting, a joke, or ask my name."
+  ]);
+}
+
+function addMsg(who, text){
+  const div = document.createElement('div');
+  div.className = 'msg ' + (who === 'bot' ? 'bot' : 'user');
+  div.innerHTML = `<div class="who">${who === 'bot' ? 'CodBot' : 'You'}</div>${text}`;
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function send(){
+  const input = document.getElementById('input');
+  const val = input.value.trim();
+  if (!val) return;
+  addMsg('user', val);
+  input.value = '';
+  setTimeout(() => addMsg('bot', getResponse(val)), 300);
+}
+
+document.getElementById('input').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+const starters = ["Hi", "Tell me a joke", "My name is Swaranjith", "Who is Virat Kohli?", "What can you do?"];
+starters.forEach(s => {
+  const c = document.createElement('div');
+  c.className = 'chip'; c.textContent = s;
+  c.onclick = () => { document.getElementById('input').value = s; send(); };
+  chipsEl.appendChild(c);
+});
+
+addMsg('bot', "Hi! I'm CodBot — a rule-based chatbot. Type 'bye' to end, or tap a suggestion below.");
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Captioning | CODSOFT Task 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+<style>
+  :root{
+    --bg:#14161a; --panel:#1c1f26; --panel-2:#22262f; --line:#2c313c;
+    --amber:#e8a33d; --blue:#6fa8dc; --text:#e7e9ee; --text-dim:#8b93a3;
+    --mono:'JetBrains Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); padding:40px 24px; }
+  .wrap{ max-width:920px; margin:0 auto; }
+  .eyebrow{ font-family:var(--mono); font-size:12px; color:var(--amber); letter-spacing:.12em;
+    text-transform:uppercase; display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .eyebrow::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:0 0 8px var(--amber); }
+  h1{ font-family:var(--mono); font-size:30px; margin:0 0 4px; }
+  .sub{ color:var(--text-dim); font-size:14px; margin-bottom:24px; max-width:660px; line-height:1.6; }
+  .layout{ display:grid; grid-template-columns:1.1fr .9fr; gap:24px; align-items:start; }
+  @media (max-width:760px){ .layout{ grid-template-columns:1fr; } }
+  .dropzone{
+    background:var(--panel); border:2px dashed var(--line); border-radius:14px; min-height:320px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px;
+    cursor:pointer; text-align:center; padding:20px; position:relative; overflow:hidden;
+  }
+  .dropzone.drag{ border-color:var(--amber); }
+  .dropzone img{ max-width:100%; max-height:340px; border-radius:10px; }
+  .dropzone .hint{ color:var(--text-dim); font-size:13px; }
+  .dropzone .icon{ font-family:var(--mono); font-size:26px; color:var(--amber); }
+  input[type=file]{ display:none; }
+  .caption-box{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; margin-top:16px;
+    min-height:70px; display:flex; align-items:center;
+  }
+  .caption-box .txt{ font-size:16px; line-height:1.6; }
+  .caption-box .placeholder{ color:var(--text-dim); font-size:13.5px; font-family:var(--mono); }
+  .tags{ display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  .tag{ font-family:var(--mono); font-size:11px; background:var(--panel-2); border:1px solid var(--line);
+    padding:4px 9px; border-radius:20px; color:var(--blue); }
+  .side{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; }
+  .side h3{ font-family:var(--mono); font-size:13px; color:var(--amber); margin:0 0 10px; text-transform:uppercase; letter-spacing:.06em; }
+  .side p{ font-size:13.5px; color:var(--text-dim); line-height:1.7; margin:0 0 14px; }
+  .side code{ background:var(--panel-2); padding:2px 6px; border-radius:5px; font-family:var(--mono); font-size:12px; color:var(--blue); }
+  .status{ font-family:var(--mono); font-size:12px; color:var(--text-dim); margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Codsoft · Task 03 · Artificial Intelligence</div>
+  <h1>Image Captioning</h1>
+  <div class="sub">Drop a photo in and get a generated caption — entirely in your browser, no server, no dataset download. It runs MobileNet (a pretrained CNN) to recognize objects, then a template layer turns those into a sentence.</div>
+
+  <div class="layout">
+    <div>
+      <div class="dropzone" id="dropzone">
+        <div id="dzContent">
+          <div class="icon">↑</div>
+          <div><b>Click to upload</b> or drag an image here</div>
+          <div class="hint">JPG or PNG, processed locally on your device</div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+      <div class="caption-box">
+        <div class="txt placeholder" id="captionOut">Caption will appear here once you upload an image…</div>
+      </div>
+      <div class="tags" id="tags"></div>
+      <button id="nextBtn" style="display:none; margin-top:14px; background:var(--amber); color:#1a1305; border:none; font-weight:700; padding:11px 20px; border-radius:9px; font-family:var(--mono); font-size:12.5px; cursor:pointer;">Try another photo →</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="side">
+      <h3>What this actually does</h3>
+      <p>This page looks at your photo and names what it recognizes (like "dog" or "beach"), then builds a simple sentence out of that. It's not writing freely like a human — it's matching your image against ~1,000 known object categories.</p>
+      <p>A "real" image captioning AI (the kind CodSoft's task describes) writes free-form sentences using a CNN + LSTM model trained on thousands of human-written captions. That version is fully built in <code>image_captioning.py</code> in your repo — training it just takes a dataset download and some time, which isn't practical to run inside a webpage. Use that Python version when you explain your project in the demo video.</p>
+      <h3>To run the real version</h3>
+      <p><code>pip install tensorflow tqdm pillow</code>, download Flickr8k, then follow the steps in that folder's README.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const dzContent = document.getElementById('dzContent');
+const captionOut = document.getElementById('captionOut');
+const tagsEl = document.getElementById('tags');
+const statusEl = document.getElementById('status');
+
+let model = null;
+
+async function ensureModel(){
+  if (model) return model;
+  statusEl.textContent = 'Loading MobileNet model…';
+  model = await mobilenet.load();
+  statusEl.textContent = 'Model ready.';
+  return model;
+}
+
+dropzone.onclick = () => fileInput.click();
+dropzone.ondragover = e => { e.preventDefault(); dropzone.classList.add('drag'); };
+dropzone.ondragleave = () => dropzone.classList.remove('drag');
+dropzone.ondrop = e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+};
+fileInput.onchange = () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); };
+
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    dzContent.innerHTML = `<img src="${e.target.result}" id="previewImg">`;
+    const img = document.getElementById('previewImg');
+    img.onload = () => classify(img);
+  };
+  reader.readAsDataURL(file);
+}
+
+function buildCaption(predictions){
+  const top = predictions.slice(0, 3).map(p => p.className.split(',')[0].trim().toLowerCase());
+  if (top.length === 1) return `This looks like a photo of ${article(top[0])} ${top[0]}.`;
+  if (top.length === 2) return `This looks like a photo of ${article(top[0])} ${top[0]}, possibly related to ${top[1]}.`;
+  return `This looks like a photo featuring ${article(top[0])} ${top[0]}, with elements resembling ${top[1]} and ${top[2]}.`;
+}
+function article(word){ return /^[aeiou]/.test(word) ? 'an' : 'a'; }
+
+async function classify(imgEl){
+  captionOut.className = 'txt';
+  captionOut.textContent = 'Analyzing image…';
+  tagsEl.innerHTML = '';
+  document.getElementById('nextBtn').style.display = 'none';
+  const m = await ensureModel();
+  const predictions = await m.classify(imgEl);
+  captionOut.textContent = buildCaption(predictions);
+  tagsEl.innerHTML = '';
+  predictions.forEach(p => {
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.textContent = `${p.className.split(',')[0]} · ${(p.probability*100).toFixed(0)}%`;
+    tagsEl.appendChild(tag);
+  });
+  statusEl.textContent = '';
+  document.getElementById('nextBtn').style.display = 'inline-block';
+}
+
+document.getElementById('nextBtn').onclick = () => {
+  dzContent.innerHTML = `
+    <div class="icon">↑</div>
+    <div><b>Click to upload</b> or drag an image here</div>
+    <div class="hint">JPG or PNG, processed locally on your device</div>`;
+  captionOut.className = 'txt placeholder';
+  captionOut.textContent = 'Caption will appear here once you upload an image…';
+  tagsEl.innerHTML = '';
+  document.getElementById('nextBtn').style.display = 'none';
+  fileInput.value = '';
+};
+</script>
+</body>
+</html>

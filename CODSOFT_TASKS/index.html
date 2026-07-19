@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODSOFT — AI Internship | Akula Swaranjith Goud</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14161a; --panel:#1c1f26; --panel-2:#22262f; --line:#2c313c;
+    --amber:#e8a33d; --blue:#6fa8dc; --text:#e7e9ee; --text-dim:#8b93a3;
+    --mono:'JetBrains Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); padding:60px 24px; }
+  .wrap{ max-width:920px; margin:0 auto; }
+  .eyebrow{ font-family:var(--mono); font-size:12px; color:var(--amber); letter-spacing:.14em;
+    text-transform:uppercase; display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+  .eyebrow::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:0 0 8px var(--amber); }
+  h1{ font-family:var(--mono); font-size:40px; margin:0 0 10px; letter-spacing:-0.01em; }
+  .sub{ color:var(--text-dim); font-size:15px; max-width:600px; line-height:1.7; margin-bottom:10px; }
+  .meta{ font-family:var(--mono); font-size:12px; color:var(--text-dim); margin-bottom:44px; }
+  .meta b{ color:var(--text); }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  a.card{
+    display:block; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:22px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s;
+  }
+  a.card:hover{ border-color:var(--amber); transform:translateY(-3px); }
+  .num{ font-family:var(--mono); font-size:12px; color:var(--amber); margin-bottom:10px; }
+  .card h2{ font-family:var(--mono); font-size:17px; margin:0 0 8px; }
+  .card p{ font-size:13px; color:var(--text-dim); line-height:1.6; margin:0; }
+  .footer{ margin-top:50px; font-family:var(--mono); font-size:12px; color:var(--text-dim); text-align:center; }
+  .footer a{ color:var(--amber); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">CodSoft · Artificial Intelligence Internship</div>
+  <h1>AI Internship — Task Portfolio</h1>
+  <div class="sub">Five tasks, five interactive builds. Everything below runs live in your browser — click into any card to try it.</div>
+  <div class="meta">Intern: <b>Akula Swaranjith Goud</b> &nbsp;·&nbsp; ID: <b>BY26RY212257</b> &nbsp;·&nbsp; 25 Jun – 25 Jul 2026</div>
+
+  <div class="grid">
+    <a class="card" href="task1_chatbot.html">
+      <div class="num">01</div>
+      <h2>CodBot</h2>
+      <p>Rule-based chatbot using regex pattern matching, with session memory and a small knowledge base.</p>
+    </a>
+    <a class="card" href="task2_tictactoe.html">
+      <div class="num">02</div>
+      <h2>Tic-Tac-Toe AI</h2>
+      <p>Unbeatable AI opponent — Minimax with Alpha-Beta pruning, playable on a real board.</p>
+    </a>
+    <a class="card" href="task3_image_captioning.html">
+      <div class="num">03</div>
+      <h2>Image Captioning</h2>
+      <p>Upload a photo, get a generated caption via MobileNet — full CNN+LSTM version documented in Python.</p>
+    </a>
+    <a class="card" href="task4_recommendation.html">
+      <div class="num">04</div>
+      <h2>Recommendation Engine</h2>
+      <p>Content-based movie recommender using TF-IDF vectors and cosine similarity.</p>
+    </a>
+    <a class="card" href="task5_face_detection.html">
+      <div class="num">05</div>
+      <h2>Face Detection & Recognition</h2>
+      <p>Live webcam face detection and name-based recognition, running face-api.js locally.</p>
+    </a>
+  </div>
+
+  <div class="footer">Built for <a href="https://www.codsoft.in" target="_blank">CodSoft</a> &nbsp;#codsoft #internship</div>
+</div>
+</body>
+</html>

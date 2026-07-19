@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic-Tac-Toe AI | CODSOFT Task 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14161a; --panel:#1c1f26; --panel-2:#22262f; --line:#2c313c;
+    --amber:#e8a33d; --blue:#6fa8dc; --text:#e7e9ee; --text-dim:#8b93a3;
+    --mono:'JetBrains Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .wrap{ width:100%; max-width:920px; display:grid; grid-template-columns:1.1fr .9fr; gap:36px; align-items:start; }
+  @media (max-width:760px){ .wrap{ grid-template-columns:1fr; } }
+  .eyebrow{ font-family:var(--mono); font-size:12px; color:var(--amber); letter-spacing:.12em;
+    text-transform:uppercase; display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .eyebrow::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:0 0 8px var(--amber); }
+  h1{ font-family:var(--mono); font-size:28px; margin:0 0 4px; }
+  .sub{ color:var(--text-dim); font-size:14px; margin-bottom:22px; line-height:1.6; }
+  .board{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px; background:var(--panel);
+    padding:10px; border-radius:16px; border:1px solid var(--line); box-shadow:0 20px 60px -24px rgba(0,0,0,.6);
+  }
+  .cell{
+    aspect-ratio:1; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:48px;
+    font-weight:700; cursor:pointer; user-select:none; transition:background .15s;
+  }
+  .cell:hover:not(.filled){ background:#282d38; }
+  .cell.x{ color:var(--blue); } .cell.o{ color:var(--amber); }
+  .status{ font-family:var(--mono); font-size:14px; margin-top:16px; color:var(--text-dim); text-align:center; }
+  .status.win{ color:var(--amber); }
+  .row{ display:flex; gap:10px; margin-top:14px; justify-content:center; }
+  button{
+    background:transparent; color:var(--text); border:1px solid var(--line); padding:9px 16px;
+    border-radius:9px; font-family:var(--mono); font-size:12.5px; cursor:pointer;
+  }
+  button.primary{ background:var(--amber); color:#1a1305; border:none; font-weight:700; }
+  button:hover{ filter:brightness(1.1); }
+  .stats{ display:flex; gap:16px; justify-content:center; margin-top:18px; }
+  .stat{ text-align:center; }
+  .stat .n{ font-family:var(--mono); font-size:22px; font-weight:700; }
+  .stat .l{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; }
+  .side{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; }
+  .side h3{ font-family:var(--mono); font-size:13px; color:var(--amber); margin:0 0 10px; text-transform:uppercase; letter-spacing:.06em; }
+  .side p{ font-size:13.5px; color:var(--text-dim); line-height:1.7; margin:0 0 14px; }
+  .side code{ background:var(--panel-2); padding:2px 6px; border-radius:5px; font-family:var(--mono); font-size:12px; color:var(--blue); }
+  select{
+    width:100%; background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    padding:10px; border-radius:8px; font-family:var(--sans); font-size:13.5px; margin-bottom:6px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="eyebrow">Codsoft · Task 02 · Artificial Intelligence</div>
+    <h1>Tic-Tac-Toe AI</h1>
+    <div class="sub">Play against an AI that never loses. It's running Minimax with Alpha-Beta pruning in your browser — click a cell to move.</div>
+
+    <div class="board" id="board"></div>
+    <div class="status" id="status">Your move — you're <b style="color:var(--blue)">X</b></div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="sWin">0</div><div class="l">AI wins</div></div>
+      <div class="stat"><div class="n" id="sDraw">0</div><div class="l">Draws</div></div>
+      <div class="stat"><div class="n" id="sLoss">0</div><div class="l">Your wins</div></div>
+    </div>
+    <div class="row">
+      <button class="primary" onclick="resetBoard()">New game</button>
+      <button onclick="resetStats()">Reset stats</button>
+    </div>
+  </div>
+
+  <div class="side">
+    <h3>Difficulty</h3>
+    <select id="difficulty">
+      <option value="unbeatable">Unbeatable (full Minimax)</option>
+      <option value="hard">Hard (90% optimal)</option>
+      <option value="easy">Easy (random)</option>
+    </select>
+    <p style="margin-top:14px">"Unbeatable" runs a full <code>minimax(depth, alpha, beta)</code> search of the game tree — the AI literally cannot lose from an empty board. The other modes inject randomness to give you a fighting chance.</p>
+    <h3>How it works</h3>
+    <p>Every empty cell is tried recursively. Each branch is scored <code>+10</code> for an AI win, <code>-10</code> for a human win, <code>0</code> for a draw (adjusted by depth so the AI prefers faster wins). Alpha-beta pruning cuts branches that can't affect the final decision, so it runs instantly even at full search depth.</p>
+  </div>
+</div>
+
+<script>
+const HUMAN = 'X', AI = 'O', EMPTY = null;
+let board = Array(9).fill(EMPTY);
+let gameOver = false;
+let stats = { win:0, draw:0, loss:0 };
+
+const boardEl = document.getElementById('board');
+const statusEl = document.getElementById('status');
+
+function renderBoard(){
+  boardEl.innerHTML = '';
+  board.forEach((val, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (val ? ' filled ' + val.toLowerCase() : '');
+    cell.textContent = val || '';
+    cell.onclick = () => handleMove(i);
+    boardEl.appendChild(cell);
+  });
+}
+
+function winner(b){
+  const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const [a,c,d] of lines){
+    if (b[a] && b[a]===b[c] && b[a]===b[d]) return b[a];
+  }
+  return null;
+}
+function isFull(b){ return b.every(v => v !== EMPTY); }
+
+function minimax(b, depth, alpha, beta, maximizing){
+  const w = winner(b);
+  if (w === AI) return 10 - depth;
+  if (w === HUMAN) return depth - 10;
+  if (isFull(b)) return 0;
+
+  if (maximizing){
+    let best = -Infinity;
+    for (let i=0;i<9;i++){
+      if (b[i]===EMPTY){
+        b[i]=AI;
+        best = Math.max(best, minimax(b, depth+1, alpha, beta, false));
+        b[i]=EMPTY;
+        alpha = Math.max(alpha, best);
+        if (beta <= alpha) break;
+      }
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let i=0;i<9;i++){
+      if (b[i]===EMPTY){
+        b[i]=HUMAN;
+        best = Math.min(best, minimax(b, depth+1, alpha, beta, true));
+        b[i]=EMPTY;
+        beta = Math.min(beta, best);
+        if (beta <= alpha) break;
+      }
+    }
+    return best;
+  }
+}
+
+function bestAiMove(b){
+  let bestScore = -Infinity, bestMove = null;
+  for (let i=0;i<9;i++){
+    if (b[i]===EMPTY){
+      b[i]=AI;
+      const score = minimax(b, 0, -Infinity, Infinity, false);
+      b[i]=EMPTY;
+      if (score > bestScore){ bestScore = score; bestMove = i; }
+    }
+  }
+  return bestMove;
+}
+
+function aiMove(){
+  const diff = document.getElementById('difficulty').value;
+  const empties = board.map((v,i)=>v===EMPTY?i:null).filter(v=>v!==null);
+  let move;
+  if (diff === 'easy'){
+    move = empties[Math.floor(Math.random()*empties.length)];
+  } else if (diff === 'hard' && Math.random() < 0.15){
+    move = empties[Math.floor(Math.random()*empties.length)];
+  } else {
+    move = bestAiMove(board);
+  }
+  board[move] = AI;
+}
+
+function handleMove(i){
+  if (gameOver || board[i] !== EMPTY) return;
+  board[i] = HUMAN;
+  renderBoard();
+  if (checkEnd()) return;
+
+  statusEl.textContent = 'AI is thinking…';
+  setTimeout(() => {
+    aiMove();
+    renderBoard();
+    checkEnd();
+  }, 350);
+}
+
+function checkEnd(){
+  const w = winner(board);
+  if (w){
+    gameOver = true;
+    if (w === AI){ stats.win++; statusEl.innerHTML = '<span style="color:var(--amber)">AI wins.</span> Try again?'; }
+    else { stats.loss++; statusEl.innerHTML = '<span style="color:var(--blue)">You win!</span> (only possible in Easy/Hard mode)'; }
+    updateStats();
+    return true;
+  }
+  if (isFull(board)){
+    gameOver = true; stats.draw++; statusEl.textContent = "It's a draw.";
+    updateStats();
+    return true;
+  }
+  statusEl.innerHTML = "Your move — you're <b style='color:var(--blue)'>X</b>";
+  return false;
+}
+
+function updateStats(){
+  document.getElementById('sWin').textContent = stats.win;
+  document.getElementById('sDraw').textContent = stats.draw;
+  document.getElementById('sLoss').textContent = stats.loss;
+}
+function resetBoard(){ board = Array(9).fill(EMPTY); gameOver = false; renderBoard(); statusEl.innerHTML = "Your move — you're <b style='color:var(--blue)'>X</b>"; }
+function resetStats(){ stats = {win:0,draw:0,loss:0}; updateStats(); }
+
+renderBoard();
+</script>
+</body>
+</html>
